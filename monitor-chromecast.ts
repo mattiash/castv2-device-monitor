@@ -1,17 +1,16 @@
-var Client = require('castv2').Client
-var DefaultMediaReceiver = require('castv2').DefaultMediaReceiver
-var mdns = require('mdns')
+import { Client, DefaultMediaReceiver } from 'castv2'
+import * as mdns from 'mdns'
 
-var browser = mdns.createBrowser(mdns.tcp('googlecast'))
+let browser = mdns.createBrowser(mdns.tcp('googlecast'))
 
 // http://bagaar.be/index.php/blog/on-chromecasts-and-slack
 
-var requestId = 1
+let requestId = 1
 
 browser.on('serviceUp', service => {
     if (service.txtRecord.fn === 'Garage') {
         browser.stop()
-        var client = new Client()
+        let client = new Client()
         client.connect(service.addresses[0], () => {
             const connection = client.createChannel(
                 'sender-0',
@@ -66,29 +65,29 @@ function parseData(songInfo) {
 browser.start()
 
 function ondeviceup(host) {
-    var client = new Client()
+    let client = new Client()
 
     client.connect(host, function() {
         // create various namespace handlers
-        var connection = client.createChannel(
+        let connection = client.createChannel(
             'sender-0',
             'receiver-0',
             'urn:x-cast:com.google.cast.tp.connection',
             'JSON',
         )
-        var heartbeat = client.createChannel(
+        let heartbeat = client.createChannel(
             'sender-0',
             'receiver-0',
             'urn:x-cast:com.google.cast.tp.heartbeat',
             'JSON',
         )
-        var receiver = client.createChannel(
+        let receiver = client.createChannel(
             'sender-0',
             'receiver-0',
             'urn:x-cast:com.google.cast.receiver',
             'JSON',
         )
-        var media = client.createChannel(
+        let media = client.createChannel(
             'sender-0',
             'receiver-0',
             'urn:x-cast:com.google.cast.media',
