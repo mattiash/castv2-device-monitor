@@ -1,17 +1,30 @@
 import { Client, DefaultMediaReceiver } from 'castv2'
 import * as mdns from 'mdns'
-
-let browser = mdns.createBrowser(mdns.tcp('googlecast'))
-
-// http://bagaar.be/index.php/blog/on-chromecasts-and-slack
+import { EventEmitter } from 'events'
 
 let requestId = 1
 
-browser.on('serviceUp', service => {
-    if (service.txtRecord.fn === 'Garage') {
-        browser.stop()
+export class ChromecastMonitor extends EventEmitter {
+    constructor(private friendlyName: string) {
+        super()
+        let browser = mdns.createBrowser(mdns.tcp('googlecast'))
+
+        // http://bagaar.be/index.php/blog/on-chromecasts-and-slack
+
+        let requestId = 1
+
+        browser.on('serviceUp', service => {
+            if (service.txtRecord.fn === this.friendlyName) {
+                this.createClient(service.addresses[0])
+                browser.stop()
+            }
+        })
+        browser.start()
+    }
+
+    createClient(address) {
         let client = new Client()
-        client.connect(service.addresses[0], () => {
+        client.connect(address, () => {
             const connection = client.createChannel(
                 'sender-0',
                 'receiver-0',
@@ -34,7 +47,10 @@ browser.on('serviceUp', service => {
             setInterval(() => {
                 heartbeat.send({ type: 'PING' })
             }, 5000)
-            receiver.send({ type: 'GET_STATUS', requestId: requestId++ })
+            receiver.send({
+                type: 'GET_STATUS',
+                requestId: requestId++,
+            })
             receiver.on('message', data => {
                 if (!data.status.applications) return
                 let appID = data.status.applications[0].transportId
@@ -51,67 +67,18 @@ browser.on('serviceUp', service => {
                     'JSON',
                 )
                 mediaConnection.send({ type: 'CONNECT' })
-                media.send({ type: 'GET_STATUS', requestId: requestId++ })
+                media.send({
+                    type: 'GET_STATUS',
+                    requestId: requestId++,
+                })
                 media.on('message', songInfo => parseData(songInfo))
             })
         })
     }
-})
+}
 
 function parseData(songInfo) {
     console.log('songInfo', JSON.stringify(songInfo))
 }
 
-browser.start()
-
-function ondeviceup(host) {
-    let client = new Client()
-
-    client.connect(host, function() {
-        // create various namespace handlers
-        let connection = client.createChannel(
-            'sender-0',
-            'receiver-0',
-            'urn:x-cast:com.google.cast.tp.connection',
-            'JSON',
-        )
-        let heartbeat = client.createChannel(
-            'sender-0',
-            'receiver-0',
-            'urn:x-cast:com.google.cast.tp.heartbeat',
-            'JSON',
-        )
-        let receiver = client.createChannel(
-            'sender-0',
-            'receiver-0',
-            'urn:x-cast:com.google.cast.receiver',
-            'JSON',
-        )
-        let media = client.createChannel(
-            'sender-0',
-            'receiver-0',
-            'urn:x-cast:com.google.cast.media',
-            'JSON',
-        )
-
-        // establish virtual connection to the receiver
-        connection.send({ type: 'CONNECT' })
-
-        // start heartbeating
-        setInterval(function() {
-            heartbeat.send({ type: 'PING' })
-        }, 5000)
-
-        receiver.send({ type: 'GET_STATUS', requestId: 1 })
-        media.send({ type: 'GET_STATUS', requestId: 2 })
-
-        // display receiver status updates
-        receiver.on('message', function(data, broadcast) {
-            console.log(JSON.stringify(data))
-        })
-
-        media.on('message', function(data, broadcast) {
-            console.log(JSON.stringify(data))
-        })
-    })
-}
+let cm = new ChromecastMonitor('Garage')
