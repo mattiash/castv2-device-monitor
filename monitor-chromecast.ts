@@ -69,6 +69,39 @@ export class ChromecastMonitor extends EventEmitter {
 
     createClient(address) {
         debug('createClient', address)
+        new ClientConnection(address, this)
+    }
+
+    setPlayState(playerState) {
+        let playState: PlayState = 'play'
+
+        if (
+            playerState === 'PAUSED' ||
+            playerState === 'IDLE' ||
+            playerState === 'BUFFERING'
+        ) {
+            playState = 'pause'
+        }
+
+        if (this.playState !== playState) {
+            this.playState = playState
+            console.log('playState', playState)
+        }
+    }
+
+    setMedia(media: Media) {
+        if (
+            media.artist !== this.currentMedia.artist ||
+            media.title !== this.currentMedia.title
+        ) {
+            this.currentMedia = media
+            console.log(this.currentMedia)
+        }
+    }
+}
+
+class ClientConnection {
+    constructor(address: string, private monitor: ChromecastMonitor) {
         let client = new Client()
         client.connect(address, () => {
             const connection = client.createChannel(
@@ -101,6 +134,7 @@ export class ChromecastMonitor extends EventEmitter {
             })
 
             connection.on('close', () => debug('connection closed'))
+            connection.on('disconnect', () => debug('connection disconnect'))
 
             setInterval(() => {
                 heartbeat.send({ type: 'PING' })
@@ -115,72 +149,55 @@ export class ChromecastMonitor extends EventEmitter {
                 debug('receiver message', JSON.stringify(data))
                 if (!data.status.applications) return
                 let appID = data.status.applications[0].transportId
-                let mediaConnection = client.createChannel(
-                    'client-17558',
-                    appID,
-                    'urn:x-cast:com.google.cast.tp.connection',
-                    'JSON',
-                )
-
-                let media = client.createChannel(
-                    'client-17558',
-                    appID,
-                    'urn:x-cast:com.google.cast.media',
-                    'JSON',
-                )
-
-                mediaConnection.send({ type: 'CONNECT' })
-
-                mediaConnection.on('message', data => {
-                    debug('mediaConnection message', data)
-                    if (data.type === 'CLOSE') {
-                        // Happens when you press Stop from the cast-dialog in Chrome
-                    }
-                })
-
-                media.send({
-                    type: 'GET_STATUS',
-                    requestId: requestId++,
-                })
-                media.on('message', songInfo => this.parseData(songInfo))
+                new MediaConnection(client, appID, this.monitor)
             })
         })
     }
+}
 
-    setPlayState(playerState) {
-        let playState: PlayState = 'play'
+class MediaConnection {
+    constructor(
+        client: any,
+        appId: string,
+        private monitor: ChromecastMonitor,
+    ) {
+        let mediaConnection = client.createChannel(
+            'client-17558',
+            appId,
+            'urn:x-cast:com.google.cast.tp.connection',
+            'JSON',
+        )
 
-        if (
-            playerState === 'PAUSED' ||
-            playerState === 'IDLE' ||
-            playerState === 'BUFFERING'
-        ) {
-            playState = 'pause'
-        }
+        let media = client.createChannel(
+            'client-17558',
+            appId,
+            'urn:x-cast:com.google.cast.media',
+            'JSON',
+        )
 
-        if (this.playState !== playState) {
-            this.playState = playState
-            console.log('playState', playState)
-        }
-    }
+        mediaConnection.send({ type: 'CONNECT' })
 
-    setMedia(media: Media) {
-        if (
-            media.artist !== this.currentMedia.artist ||
-            media.title !== this.currentMedia.title
-        ) {
-            this.currentMedia = media
-            console.log(this.currentMedia)
-        }
+        mediaConnection.on('message', data => {
+            debug('mediaConnection message', data)
+            if (data.type === 'CLOSE') {
+                // Happens when you press Stop from the cast-dialog in Chrome
+            }
+        })
+
+        media.send({
+            type: 'GET_STATUS',
+            requestId: requestId++,
+        })
+        media.on('message', songInfo => this.parseData(songInfo))
     }
 
     parseData(songInfo) {
         debug('songInfo', songInfo.requestId)
         let status = songInfo.status[0]
         if (status) {
-            this.setPlayState(status.playerState)
+            this.monitor.setPlayState(status.playerState)
             if (status.media) {
-                this.setMedia({
+                this.monitor.setMedia({
                     artist: status.media.metadata.artist,
                     title: status.media.metadata.title,
                 })
@@ -191,7 +208,4 @@ export class ChromecastMonitor extends EventEmitter {
     }
 }
 
-class ClientConnection {
-    constructor(address: string) {}
-}
 let cm = new ChromecastMonitor('Garage', 'en0')
