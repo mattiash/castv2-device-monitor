@@ -150,7 +150,11 @@ export class ChromecastMonitor extends EventEmitter {
     setPlayState(playerState) {
         let playState: PlayState = 'play'
 
-        if (playerState === 'PAUSED') {
+        if (
+            playerState === 'PAUSED' ||
+            playerState === 'IDLE' ||
+            playerState === 'BUFFERING'
+        ) {
             playState = 'pause'
         }
 
