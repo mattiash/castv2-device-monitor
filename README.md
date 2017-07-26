@@ -44,3 +44,13 @@ the application that is currently controlling the Chromecast.
 
 The media event has a single parameter that contains an object with properties
 'artist' and 'title'. These describe the currently playing song on the Chromecast.
+
+# Debugging
+
+This module includes a binary castv2-device-monitor for testing purposes.
+
+Usage:
+
+    ./node_modules/.bin/castv2-device-monitor Livingroom
+
+    DEBUG=* ./node_modules/.bin/castv2-device-monitor Livingroom eth0 5000

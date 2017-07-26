@@ -1,15 +1,16 @@
 {
     "name": "castv2-device-monitor",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Monitor a castv2 (a.k.a Chromecast) device",
     "main": "index.js",
     "types": "index.ts",
+    "files": ["castv2-device-monitor.js"],
     "repository": {
         "type": "git",
         "url": "https://github.com/mattiash/castv2-device-monitor"
     },
     "scripts": {
-        "prepublish": "npm run tsc",
+        "prepare": "npm run tsc",
         "test": "echo \"Error: no test specified\" && exit 1",
         "tsc": "tsc"
     },
