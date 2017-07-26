@@ -16,12 +16,17 @@ export type Media = {
 export class ChromecastMonitor extends EventEmitter {
     public powerState: PowerState = 'off'
     public playState: PlayState = 'pause'
+    public app: string | undefined = undefined
+
     public currentMedia: Media = {
         artist: 'none',
         title: 'none',
     }
 
     private found = false
+
+    private serviceName: string
+    private clientConnection: ClientConnection
 
     constructor(
         private friendlyName: string,
@@ -43,13 +48,14 @@ export class ChromecastMonitor extends EventEmitter {
             } else {
                 if (service.txtRecord.fn === this.friendlyName) {
                     debug('serviceUp', service)
-                    if (!this.found) {
-                        // If the same device is reachable via several
-                        // network interfaces, it will be detected
-                        // once per interface.
-                        this.found = true
-                        this.createClient(service.addresses[0])
+                    if (this.clientConnection) {
+                        debug('Destroying clientConnection to replace with new')
+                        this.clientConnection.close()
                     }
+                    this.clientConnection = new ClientConnection(
+                        service.addresses[0],
+                        this,
+                    )
                 }
             }
         })
@@ -62,14 +68,16 @@ export class ChromecastMonitor extends EventEmitter {
                 // Ignore wrong interface
             } else {
                 debug('serviceDown', service)
+                if (service.name === this.serviceName) {
+                    if (this.clientConnection) {
+                        debug('No clientConnection to destroy')
+                    } else {
+                        this.clientConnection.close()
+                    }
+                }
             }
         })
         browser.start()
-    }
-
-    createClient(address) {
-        debug('createClient', address)
-        new ClientConnection(address, this)
     }
 
     setPlayState(playerState) {
@@ -98,25 +106,43 @@ export class ChromecastMonitor extends EventEmitter {
             console.log(this.currentMedia)
         }
     }
+
+    setApplication(application: string) {
+        if (application !== this.app) {
+            this.app = application
+            console.log('application', this.app)
+        }
+    }
 }
 
 class ClientConnection {
+    private client: Client
+    private interval: NodeJS.Timer
+    private active = false
+
     constructor(address: string, private monitor: ChromecastMonitor) {
-        let client = new Client()
-        client.connect(address, () => {
-            const connection = client.createChannel(
+        this.client = new Client()
+
+        this.client.on('error', error => {
+            console.log('error event', error)
+            this.close()
+        })
+
+        this.client.connect(address, () => {
+            this.active = true
+            const connection = this.client.createChannel(
                 'sender-0',
                 'receiver-0',
                 'urn:x-cast:com.google.cast.tp.connection',
                 'JSON',
             )
-            const receiver = client.createChannel(
+            const receiver = this.client.createChannel(
                 'sender-0',
                 'receiver-0',
                 'urn:x-cast:com.google.cast.receiver',
                 'JSON',
             )
-            const heartbeat = client.createChannel(
+            const heartbeat = this.client.createChannel(
                 'sender-0',
                 'receiver-0',
                 'urn:x-cast:com.google.cast.heartbeat',
@@ -136,7 +162,7 @@ class ClientConnection {
             connection.on('close', () => debug('connection closed'))
             connection.on('disconnect', () => debug('connection disconnect'))
 
-            setInterval(() => {
+            this.interval = setInterval(() => {
                 heartbeat.send({ type: 'PING' })
             }, 5000)
 
@@ -148,10 +174,21 @@ class ClientConnection {
             receiver.on('message', data => {
                 debug('receiver message', JSON.stringify(data))
                 if (!data.status.applications) return
+                this.monitor.setApplication(
+                    data.status.applications[0].displayName,
+                )
                 let appID = data.status.applications[0].transportId
-                new MediaConnection(client, appID, this.monitor)
+                new MediaConnection(this.client, appID, this.monitor)
             })
         })
+    }
+
+    close() {
+        if (this.active) {
+            this.active = false
+            clearInterval(this.interval)
+            this.client.close()
+        }
     }
 }
 
@@ -181,6 +218,9 @@ class MediaConnection {
             debug('mediaConnection message', data)
             if (data.type === 'CLOSE') {
                 // Happens when you press Stop from the cast-dialog in Chrome
+                debug('Closing MediaConnection')
+                mediaConnection.close()
+                media.close()
             }
         })
 
