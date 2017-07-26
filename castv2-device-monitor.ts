@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { DeviceMonitor } from './'
 
 let [, , deviceName, interfaceName, timeout] = process.argv
