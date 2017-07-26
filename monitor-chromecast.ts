@@ -119,17 +119,25 @@ class ClientConnection {
     private client: Client
     private interval: NodeJS.Timer
     private active = false
+    private reconnectTimer: NodeJS.Timer
 
-    constructor(address: string, private monitor: ChromecastMonitor) {
+    constructor(private address: string, private monitor: ChromecastMonitor) {
+        this.connect()
+    }
+
+    connect() {
+        this.active = true
         this.client = new Client()
 
         this.client.on('error', error => {
             console.log('error event', error)
             this.close()
+            this.reconnectTimer = setTimeout(() => this.connect(), 5000)
         })
 
-        this.client.connect(address, () => {
-            this.active = true
+        this.client.connect(this.address, () => {
+            debug('Connected')
+
             const connection = this.client.createChannel(
                 'sender-0',
                 'receiver-0',
@@ -188,6 +196,8 @@ class ClientConnection {
             this.active = false
             clearInterval(this.interval)
             this.client.close()
+        } else {
+            clearTimeout(this.reconnectTimer)
         }
     }
 }
