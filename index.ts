@@ -13,7 +13,7 @@ export type Media = {
     title: string
 }
 
-export class ChromecastMonitor extends EventEmitter {
+export class DeviceMonitor extends EventEmitter {
     public powerState: PowerState | undefined = undefined
     public playState: PlayState = 'pause'
     public application: string | undefined = undefined
@@ -163,7 +163,7 @@ class ClientConnection {
     private active = false
     private reconnectTimer: NodeJS.Timer
 
-    constructor(private address: string, private monitor: ChromecastMonitor) {
+    constructor(private address: string, private monitor: DeviceMonitor) {
         this.connect()
     }
 
@@ -246,11 +246,7 @@ class ClientConnection {
 }
 
 class MediaConnection {
-    constructor(
-        client: any,
-        appId: string,
-        private monitor: ChromecastMonitor,
-    ) {
+    constructor(client: any, appId: string, private monitor: DeviceMonitor) {
         let mediaConnection = client.createChannel(
             'client-17558',
             appId,
@@ -300,9 +296,3 @@ class MediaConnection {
         }
     }
 }
-
-let cm = new ChromecastMonitor('Garage', 'en0', 5000)
-cm.on('powerState', powerState => console.log('powerState', powerState))
-cm.on('playState', playState => console.log('playState', playState))
-cm.on('application', application => console.log('application', application))
-cm.on('media', media => console.log('media', media))

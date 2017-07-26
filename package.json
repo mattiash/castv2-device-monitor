@@ -1,21 +1,31 @@
 {
     "name": "castv2-device-monitor",
     "version": "1.0.0",
-    "description": "",
+    "description": "Monitor a castv2 (a.k.a Chromecast) device",
     "main": "index.js",
+    "types": "index.ts",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "prepublish": "npm run tsc",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "tsc": "tsc"
     },
-    "author": "",
+    "author": "Mattias Holmlund <mattias@holmlund.se>",
     "license": "ISC",
+    "keywords": [
+        "castv2",
+        "chromecast"
+    ],
+    "bin": {
+        "castv2-device-monitor": "./castv2-device-monitor.js"
+    },
     "dependencies": {
-        "@types/node": "^8.0.15",
         "castv2-client": "^1.2.0",
-        "mdns": "^2.3.3",
-        "typescript": "^2.4.2"
+        "debug": "^2.6.8",
+        "mdns": "^2.3.3"
     },
     "devDependencies": {
         "@types/debug": "0.0.29",
-        "debug": "^2.6.8"
+        "@types/node": "^8.0.15",
+        "typescript": "^2.4.2"
     }
 }

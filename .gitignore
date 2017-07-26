@@ -1,2 +1,3 @@
 node_modules/
-monitor-chromecast.js
+index.js
+castv2-device-monitor.js
