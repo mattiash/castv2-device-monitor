@@ -172,7 +172,7 @@ class ClientConnection {
         this.client = new Client()
 
         this.client.on('error', error => {
-            console.log('error event', error)
+            debug('error event', error)
             this.close()
             this.reconnectTimer = setTimeout(() => this.connect(), 5000)
         })
