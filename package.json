@@ -4,6 +4,10 @@
     "description": "Monitor a castv2 (a.k.a Chromecast) device",
     "main": "index.js",
     "types": "index.ts",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/mattiash/castv2-device-monitor"
+    },
     "scripts": {
         "prepublish": "npm run tsc",
         "test": "echo \"Error: no test specified\" && exit 1",
@@ -11,10 +15,7 @@
     },
     "author": "Mattias Holmlund <mattias@holmlund.se>",
     "license": "ISC",
-    "keywords": [
-        "castv2",
-        "chromecast"
-    ],
+    "keywords": ["castv2", "chromecast"],
     "bin": {
         "castv2-device-monitor": "./castv2-device-monitor.js"
     },
