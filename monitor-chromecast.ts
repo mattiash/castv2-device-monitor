@@ -14,9 +14,9 @@ export type Media = {
 }
 
 export class ChromecastMonitor extends EventEmitter {
-    public powerState: PowerState = 'off'
+    public powerState: PowerState | undefined = undefined
     public playState: PlayState = 'pause'
-    public app: string | undefined = undefined
+    public application: string | undefined = undefined
 
     public currentMedia: Media = {
         artist: 'none',
@@ -27,12 +27,21 @@ export class ChromecastMonitor extends EventEmitter {
 
     private serviceName: string
     private clientConnection: ClientConnection
+    private idleTimer: NodeJS.Timer
 
     constructor(
         private friendlyName: string,
         private networkInterface?: string,
+        private idleTimeout: number = 60000,
     ) {
         super()
+
+        setTimeout(() => {
+            if (!this.powerState) {
+                this.setPowerState('off')
+            }
+        }, 2000)
+
         let browser = mdns.createBrowser(mdns.tcp('googlecast'))
 
         // http://bagaar.be/index.php/blog/on-chromecasts-and-slack
@@ -47,7 +56,7 @@ export class ChromecastMonitor extends EventEmitter {
                 // Ignore wrong interface
             } else {
                 if (service.txtRecord.fn === this.friendlyName) {
-                    debug('serviceUp', service)
+                    debug('serviceUp')
                     if (this.clientConnection) {
                         debug('Destroying clientConnection to replace with new')
                         this.clientConnection.close()
@@ -67,8 +76,9 @@ export class ChromecastMonitor extends EventEmitter {
             ) {
                 // Ignore wrong interface
             } else {
-                debug('serviceDown', service)
                 if (service.name === this.serviceName) {
+                    debug('serviceDown')
+                    this.setPowerState('off')
                     if (this.clientConnection) {
                         debug('No clientConnection to destroy')
                     } else {
@@ -80,6 +90,17 @@ export class ChromecastMonitor extends EventEmitter {
         browser.start()
     }
 
+    setPowerState(powerState: PowerState) {
+        if (powerState !== this.powerState) {
+            this.powerState = powerState
+            this.emit('powerState', this.powerState)
+        }
+
+        if (this.powerState === 'on') {
+            this.clearIdleTimer()
+        }
+    }
+
     setPlayState(playerState) {
         let playState: PlayState = 'play'
 
@@ -89,11 +110,16 @@ export class ChromecastMonitor extends EventEmitter {
             playerState === 'BUFFERING'
         ) {
             playState = 'pause'
+            this.setIdleTimer()
+        }
+
+        if (playState === 'play') {
+            this.setPowerState('on')
         }
 
         if (this.playState !== playState) {
             this.playState = playState
-            console.log('playState', playState)
+            this.emit('playState', this.playState)
         }
     }
 
@@ -103,14 +129,30 @@ export class ChromecastMonitor extends EventEmitter {
             media.title !== this.currentMedia.title
         ) {
             this.currentMedia = media
-            console.log(this.currentMedia)
+            this.emit('media', this.currentMedia)
         }
     }
 
     setApplication(application: string) {
-        if (application !== this.app) {
-            this.app = application
-            console.log('application', this.app)
+        this.setPowerState('on')
+        if (application !== this.application) {
+            this.application = application
+            this.emit('application', this.application)
+        }
+    }
+
+    setIdleTimer() {
+        this.clearIdleTimer()
+        this.idleTimer = setTimeout(
+            () => this.setPowerState('off'),
+            this.idleTimeout,
+        )
+    }
+
+    clearIdleTimer() {
+        if (this.idleTimer) {
+            clearTimeout(this.idleTimer)
+            this.idleTimer = undefined
         }
     }
 }
@@ -164,6 +206,7 @@ class ClientConnection {
                 if (data.type === 'CLOSE') {
                     // Never seen this happen
                     debug('Connection closed')
+                    this.close()
                 }
             })
 
@@ -258,4 +301,8 @@ class MediaConnection {
     }
 }
 
-let cm = new ChromecastMonitor('Garage', 'en0')
+let cm = new ChromecastMonitor('Garage', 'en0', 5000)
+cm.on('powerState', powerState => console.log('powerState', powerState))
+cm.on('playState', playState => console.log('playState', playState))
+cm.on('application', application => console.log('application', application))
+cm.on('media', media => console.log('media', media))
