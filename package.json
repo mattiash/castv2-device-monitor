@@ -1,10 +1,10 @@
 {
     "name": "castv2-device-monitor",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "description": "Monitor a castv2 (a.k.a Chromecast) device",
     "main": "index.js",
     "types": "index.ts",
-    "files": ["castv2-device-monitor.js"],
+    "files": ["castv2-device-monitor.js", "index.ts"],
     "repository": {
         "type": "git",
         "url": "https://github.com/mattiash/castv2-device-monitor"
