@@ -11,7 +11,6 @@
   "dependencies": {
     "@types/node": "^8.0.15",
     "castv2-client": "^1.2.0",
-    "chromecast-discover": "^1.0.5",
     "mdns": "^2.3.3",
     "typescript": "^2.4.2"
   },
