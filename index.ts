@@ -168,6 +168,18 @@ export class DeviceMonitor extends EventEmitter {
             this.clientConnection.pauseDevice()
         }
     }
+
+    volumeUp() {
+        if (this.clientConnection) {
+            this.clientConnection.volumeUp()
+        }
+    }
+
+    volumeDown() {
+        if (this.clientConnection) {
+            this.clientConnection.volumeDown()
+        }
+    }
 }
 
 class ClientConnection {
@@ -179,6 +191,7 @@ class ClientConnection {
     private transportId: string
     private sessionId: string
     private mediaConnection: MediaConnection
+    private volume: number
 
     constructor(private address: string, private monitor: DeviceMonitor) {
         this.connect()
@@ -232,12 +245,11 @@ class ClientConnection {
 
             this.interval = setInterval(() => {
                 heartbeat.send({ type: 'PING' })
+                this.receiver.send({
+                    type: 'GET_STATUS',
+                    requestId: requestId++,
+                })
             }, 5000)
-
-            this.receiver.send({
-                type: 'GET_STATUS',
-                requestId: requestId++,
-            })
 
             this.receiver.on('message', data => {
                 debug('receiver message', JSON.stringify(data))
@@ -245,13 +257,18 @@ class ClientConnection {
                 this.monitor.setApplication(
                     data.status.applications[0].displayName,
                 )
-                this.transportId = data.status.applications[0].transportId
+
+                let transportId = data.status.applications[0].transportId
+                this.volume = data.status.volume.level
+                if (this.transportId !== transportId) {
+                    this.transportId = transportId
+                    this.mediaConnection = new MediaConnection(
+                        this.client,
+                        this.transportId,
+                        this.monitor,
+                    )
+                }
                 this.sessionId = data.status.applications[0].sessionId
-                this.mediaConnection = new MediaConnection(
-                    this.client,
-                    this.transportId,
-                    this.monitor,
-                )
             })
         })
     }
@@ -282,23 +299,44 @@ class ClientConnection {
             this.mediaConnection.pause()
         }
     }
+
+    volumeUp() {
+        this.receiver.send({
+            type: 'SET_VOLUME',
+            volume: { level: this.volume + 0.05 },
+            requestId: requestId++,
+        })
+    }
+
+    volumeDown() {
+        this.receiver.send({
+            type: 'SET_VOLUME',
+            volume: { level: this.volume - 0.05 },
+            requestId: requestId++,
+        })
+    }
 }
 
 class MediaConnection {
     private mediaSessionId: string
     private media
 
-    constructor(client: any, appId: string, private monitor: DeviceMonitor) {
+    constructor(
+        client: any,
+        transportId: string,
+        private monitor: DeviceMonitor,
+    ) {
+        debug('new MediaConnection', transportId)
         let mediaConnection = client.createChannel(
             'client-17558',
-            appId,
+            transportId,
             'urn:x-cast:com.google.cast.tp.connection',
             'JSON',
         )
 
         this.media = client.createChannel(
             'client-17558',
-            appId,
+            transportId,
             'urn:x-cast:com.google.cast.media',
             'JSON',
         )
