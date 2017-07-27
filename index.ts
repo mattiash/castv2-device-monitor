@@ -83,6 +83,7 @@ export class DeviceMonitor extends EventEmitter {
                         debug('No clientConnection to destroy')
                     } else {
                         this.clientConnection.close()
+                        this.clientConnection = undefined
                     }
                 }
             }
@@ -155,6 +156,18 @@ export class DeviceMonitor extends EventEmitter {
             this.idleTimer = undefined
         }
     }
+
+    stopDevice() {
+        if (this.clientConnection) {
+            this.clientConnection.stopDevice()
+        }
+    }
+
+    pauseDevice() {
+        if (this.clientConnection && this.playState === 'play') {
+            this.clientConnection.pauseDevice()
+        }
+    }
 }
 
 class ClientConnection {
@@ -162,6 +175,10 @@ class ClientConnection {
     private interval: NodeJS.Timer
     private active = false
     private reconnectTimer: NodeJS.Timer
+    private receiver: any
+    private transportId: string
+    private sessionId: string
+    private mediaConnection: MediaConnection
 
     constructor(private address: string, private monitor: DeviceMonitor) {
         this.connect()
@@ -186,7 +203,7 @@ class ClientConnection {
                 'urn:x-cast:com.google.cast.tp.connection',
                 'JSON',
             )
-            const receiver = this.client.createChannel(
+            this.receiver = this.client.createChannel(
                 'sender-0',
                 'receiver-0',
                 'urn:x-cast:com.google.cast.receiver',
@@ -217,19 +234,24 @@ class ClientConnection {
                 heartbeat.send({ type: 'PING' })
             }, 5000)
 
-            receiver.send({
+            this.receiver.send({
                 type: 'GET_STATUS',
                 requestId: requestId++,
             })
 
-            receiver.on('message', data => {
+            this.receiver.on('message', data => {
                 debug('receiver message', JSON.stringify(data))
                 if (!data.status.applications) return
                 this.monitor.setApplication(
                     data.status.applications[0].displayName,
                 )
-                let appID = data.status.applications[0].transportId
-                new MediaConnection(this.client, appID, this.monitor)
+                this.transportId = data.status.applications[0].transportId
+                this.sessionId = data.status.applications[0].sessionId
+                this.mediaConnection = new MediaConnection(
+                    this.client,
+                    this.transportId,
+                    this.monitor,
+                )
             })
         })
     }
@@ -239,13 +261,33 @@ class ClientConnection {
             this.active = false
             clearInterval(this.interval)
             this.client.close()
+            this.receiver = undefined
         } else {
             clearTimeout(this.reconnectTimer)
+        }
+    }
+
+    stopDevice() {
+        if (this.receiver) {
+            this.receiver.send({
+                type: 'STOP',
+                requestId: requestId++,
+                sessionId: this.sessionId,
+            })
+        }
+    }
+
+    pauseDevice() {
+        if (this.mediaConnection) {
+            this.mediaConnection.pause()
         }
     }
 }
 
 class MediaConnection {
+    private mediaSessionId: string
+    private media
+
     constructor(client: any, appId: string, private monitor: DeviceMonitor) {
         let mediaConnection = client.createChannel(
             'client-17558',
@@ -254,7 +296,7 @@ class MediaConnection {
             'JSON',
         )
 
-        let media = client.createChannel(
+        this.media = client.createChannel(
             'client-17558',
             appId,
             'urn:x-cast:com.google.cast.media',
@@ -269,30 +311,42 @@ class MediaConnection {
                 // Happens when you press Stop from the cast-dialog in Chrome
                 debug('Closing MediaConnection')
                 mediaConnection.close()
-                media.close()
+                this.media.close()
             }
         })
 
-        media.send({
+        this.media.send({
             type: 'GET_STATUS',
             requestId: requestId++,
         })
-        media.on('message', songInfo => this.parseData(songInfo))
+
+        this.media.on('message', songInfo => this.parseData(songInfo))
+    }
+
+    pause() {
+        this.media.send({
+            type: 'PAUSE',
+            mediaSessionId: this.mediaSessionId,
+            requestId: requestId++,
+        })
     }
 
     parseData(songInfo) {
         debug('songInfo', songInfo.requestId)
-        let status = songInfo.status[0]
-        if (status) {
-            this.monitor.setPlayState(status.playerState)
-            if (status.media) {
-                this.monitor.setMedia({
-                    artist: status.media.metadata.artist,
-                    title: status.media.metadata.title,
-                })
+        if (songInfo.type === 'MEDIA_STATUS') {
+            let status = songInfo.status[0]
+            if (status) {
+                this.mediaSessionId = status.mediaSessionId
+                this.monitor.setPlayState(status.playerState)
+                if (status.media) {
+                    this.monitor.setMedia({
+                        artist: status.media.metadata.artist,
+                        title: status.media.metadata.title,
+                    })
+                }
+            } else {
+                debug('No status')
             }
-        } else {
-            debug('No status')
         }
     }
 }
