@@ -45,6 +45,20 @@ the application that is currently controlling the Chromecast.
 The media event has a single parameter that contains an object with properties
 'artist' and 'title'. These describe the currently playing song on the Chromecast.
 
+# Controlling device
+
+The DeviceMonitor also offers a limited ability to control playback on the device:
+
+    dm.pauseDevice()
+    dm.playDevice()
+    dm.volumeUp()
+    dm.volumeDown()
+
+Additionally, dm.stopDevice() can be used to stop the session
+from the application to the device.
+It usually means that you have to
+select the cast-device again from the application.
+
 # Debugging
 
 This module includes a binary castv2-device-monitor for testing purposes.
