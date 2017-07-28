@@ -251,14 +251,14 @@ class ClientConnection {
 
             this.interval = setInterval(() => {
                 heartbeat.send({ type: 'PING' })
-                this.receiver.send({
-                    type: 'GET_STATUS',
-                    requestId: requestId++,
-                })
             }, 5000)
 
+            this.receiver.send({
+                type: 'GET_STATUS',
+                requestId: requestId++,
+            })
+
             this.receiver.on('message', data => {
-                debug('receiver message', JSON.stringify(data))
                 if (!data.status.applications) return
                 this.monitor.setApplication(
                     data.status.applications[0].displayName,
@@ -266,6 +266,7 @@ class ClientConnection {
 
                 let transportId = data.status.applications[0].transportId
                 this.volume = data.status.volume.level
+                debug('volume', this.volume)
                 if (this.transportId !== transportId) {
                     this.transportId = transportId
                     this.mediaConnection = new MediaConnection(
@@ -370,7 +371,7 @@ class MediaConnection {
             requestId: requestId++,
         })
 
-        this.media.on('message', songInfo => this.parseData(songInfo))
+        this.media.on('message', message => this.parseMessage(message))
     }
 
     pause() {
@@ -389,10 +390,10 @@ class MediaConnection {
         })
     }
 
-    parseData(songInfo) {
-        debug('songInfo', songInfo.requestId)
-        if (songInfo.type === 'MEDIA_STATUS') {
-            let status = songInfo.status[0]
+    parseMessage(message) {
+        debug('media message', message.requestId)
+        if (message.type === 'MEDIA_STATUS') {
+            let status = message.status[0]
             if (status) {
                 this.mediaSessionId = status.mediaSessionId
                 this.monitor.setPlayState(status.playerState)
@@ -402,8 +403,6 @@ class MediaConnection {
                         title: status.media.metadata.title,
                     })
                 }
-            } else {
-                debug('No status')
             }
         }
     }
