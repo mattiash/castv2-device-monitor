@@ -1,10 +1,13 @@
 {
     "name": "castv2-device-monitor",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "Monitor a castv2 (a.k.a Chromecast) device",
     "main": "index.js",
     "types": "index.ts",
-    "files": ["castv2-device-monitor.js", "index.ts"],
+    "files": [
+        "castv2-device-monitor.js",
+        "index.ts"
+    ],
     "repository": {
         "type": "git",
         "url": "https://github.com/mattiash/castv2-device-monitor"
@@ -16,11 +19,15 @@
     },
     "author": "Mattias Holmlund <mattias@holmlund.se>",
     "license": "ISC",
-    "keywords": ["castv2", "chromecast"],
+    "keywords": [
+        "castv2",
+        "chromecast"
+    ],
     "bin": {
         "castv2-device-monitor": "./castv2-device-monitor.js"
     },
     "dependencies": {
+        "@types/mdns": "0.0.31",
         "castv2-client": "^1.2.0",
         "debug": "^2.6.8",
         "mdns": "^2.3.3"

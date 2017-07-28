@@ -1,4 +1,4 @@
-import { Client } from 'castv2'
+const Client = require('castv2').Client
 import * as mdns from 'mdns'
 import { EventEmitter } from 'events'
 import * as dbg from 'debug'
@@ -23,11 +23,9 @@ export class DeviceMonitor extends EventEmitter {
         title: 'none',
     }
 
-    private found = false
-
     private serviceName: string
-    private clientConnection: ClientConnection
-    private idleTimer: NodeJS.Timer
+    private clientConnection: ClientConnection | undefined
+    private idleTimer: NodeJS.Timer | undefined
 
     constructor(
         private friendlyName: string,
@@ -46,9 +44,7 @@ export class DeviceMonitor extends EventEmitter {
 
         // http://bagaar.be/index.php/blog/on-chromecasts-and-slack
 
-        let requestId = 1
-
-        browser.on('serviceUp', service => {
+        browser.on('serviceUp', (service: any) => {
             if (
                 this.networkInterface &&
                 this.networkInterface !== service.networkInterface
@@ -79,7 +75,7 @@ export class DeviceMonitor extends EventEmitter {
                 if (service.name === this.serviceName) {
                     debug('serviceDown')
                     this.setPowerState('off')
-                    if (this.clientConnection) {
+                    if (!this.clientConnection) {
                         debug('No clientConnection to destroy')
                     } else {
                         this.clientConnection.close()
@@ -102,7 +98,7 @@ export class DeviceMonitor extends EventEmitter {
         }
     }
 
-    setPlayState(playerState) {
+    setPlayState(playerState: string) {
         let playState: PlayState = 'play'
 
         if (
@@ -189,7 +185,7 @@ export class DeviceMonitor extends EventEmitter {
 }
 
 class ClientConnection {
-    private client: Client
+    private client: any
     private interval: NodeJS.Timer
     private active = false
     private reconnectTimer: NodeJS.Timer
@@ -207,7 +203,7 @@ class ClientConnection {
         this.active = true
         this.client = new Client()
 
-        this.client.on('error', error => {
+        this.client.on('error', (error: any) => {
             debug('error event', error)
             this.close()
             this.reconnectTimer = setTimeout(() => this.connect(), 5000)
@@ -237,7 +233,7 @@ class ClientConnection {
 
             connection.send({ type: 'CONNECT' })
 
-            connection.on('message', data => {
+            connection.on('message', (data: any) => {
                 debug('connection message', data)
                 if (data.type === 'CLOSE') {
                     // Never seen this happen
@@ -258,7 +254,7 @@ class ClientConnection {
                 requestId: requestId++,
             })
 
-            this.receiver.on('message', data => {
+            this.receiver.on('message', (data: any) => {
                 if (!data.status.applications) return
                 this.monitor.setApplication(
                     data.status.applications[0].displayName,
@@ -332,7 +328,7 @@ class ClientConnection {
 
 class MediaConnection {
     private mediaSessionId: string
-    private media
+    private media: any
 
     constructor(
         client: any,
@@ -356,7 +352,7 @@ class MediaConnection {
 
         mediaConnection.send({ type: 'CONNECT' })
 
-        mediaConnection.on('message', data => {
+        mediaConnection.on('message', (data: any) => {
             debug('mediaConnection message', data)
             if (data.type === 'CLOSE') {
                 // Happens when you press Stop from the cast-dialog in Chrome
@@ -371,7 +367,7 @@ class MediaConnection {
             requestId: requestId++,
         })
 
-        this.media.on('message', message => this.parseMessage(message))
+        this.media.on('message', (message: any) => this.parseMessage(message))
     }
 
     pause() {
@@ -390,7 +386,7 @@ class MediaConnection {
         })
     }
 
-    parseMessage(message) {
+    parseMessage(message: any) {
         debug('media message', message.requestId)
         if (message.type === 'MEDIA_STATUS') {
             let status = message.status[0]
