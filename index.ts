@@ -169,6 +169,12 @@ export class DeviceMonitor extends EventEmitter {
         }
     }
 
+    playDevice() {
+        if (this.clientConnection && this.playState === 'pause') {
+            this.clientConnection.playDevice()
+        }
+    }
+
     volumeUp() {
         if (this.clientConnection) {
             this.clientConnection.volumeUp()
@@ -300,6 +306,12 @@ class ClientConnection {
         }
     }
 
+    playDevice() {
+        if (this.mediaConnection) {
+            this.mediaConnection.play()
+        }
+    }
+
     volumeUp() {
         this.receiver.send({
             type: 'SET_VOLUME',
@@ -364,6 +376,14 @@ class MediaConnection {
     pause() {
         this.media.send({
             type: 'PAUSE',
+            mediaSessionId: this.mediaSessionId,
+            requestId: requestId++,
+        })
+    }
+
+    play() {
+        this.media.send({
+            type: 'PLAY',
             mediaSessionId: this.mediaSessionId,
             requestId: requestId++,
         })
