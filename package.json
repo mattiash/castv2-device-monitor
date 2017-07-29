@@ -27,7 +27,7 @@
         "castv2-device-monitor": "./castv2-device-monitor.js"
     },
     "dependencies": {
-        "castv2-client": "^1.2.0",
+        "castv2": "^0.1.9",
         "debug": "^2.6.8",
         "mdns": "^2.3.3"
     },
