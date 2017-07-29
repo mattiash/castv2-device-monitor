@@ -1,3 +1,4 @@
 node_modules/
 index.js
 castv2-device-monitor.js
+*.d.ts
