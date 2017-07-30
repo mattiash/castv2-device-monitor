@@ -1,8 +1,8 @@
 const Client = require('castv2').Client
-import * as mdns from 'mdns'
+const mdns = require('mdns-js')
+
 import { EventEmitter } from 'events'
 import * as dbg from 'debug'
-
 const debug = dbg('cm')
 
 let requestId = 1
@@ -23,13 +23,12 @@ export class DeviceMonitor extends EventEmitter {
         title: 'none',
     }
 
-    private serviceName: string
     private clientConnection: ClientConnection | undefined
     private idleTimer: NodeJS.Timer | undefined
+    private clientIp: string
 
     constructor(
         private friendlyName: string,
-        private networkInterface?: string,
         private idleTimeout: number = 60000,
     ) {
         super()
@@ -41,50 +40,34 @@ export class DeviceMonitor extends EventEmitter {
         }, 2000)
 
         let browser = mdns.createBrowser(mdns.tcp('googlecast'))
+        browser.on('ready', function() {
+            browser.discover()
+        })
 
         // http://bagaar.be/index.php/blog/on-chromecasts-and-slack
 
-        browser.on('serviceUp', (service: any) => {
+        browser.on('update', (service: any) => {
             if (
-                this.networkInterface &&
-                this.networkInterface !== service.networkInterface
+                service.type[0].name === 'googlecast' &&
+                service.txt &&
+                service.txt.includes('fn=' + this.friendlyName)
             ) {
-                // Ignore wrong interface
-            } else {
-                if (service.txtRecord.fn === this.friendlyName) {
-                    debug('serviceUp')
+                let clientIp = service.addresses[0]
+                if (clientIp !== this.clientIp) {
+                    this.clientIp = clientIp
                     if (this.clientConnection) {
                         debug('Destroying clientConnection to replace with new')
                         this.clientConnection.close()
                     }
                     this.clientConnection = new ClientConnection(
-                        service.addresses[0],
+                        this.clientIp,
                         this,
                     )
                 }
+                debug(service)
+                debug('serviceUp')
             }
         })
-
-        browser.on('serviceDown', service => {
-            if (
-                this.networkInterface &&
-                this.networkInterface !== service.networkInterface
-            ) {
-                // Ignore wrong interface
-            } else {
-                if (service.name === this.serviceName) {
-                    debug('serviceDown')
-                    this.setPowerState('off')
-                    if (!this.clientConnection) {
-                        debug('No clientConnection to destroy')
-                    } else {
-                        this.clientConnection.close()
-                        this.clientConnection = undefined
-                    }
-                }
-            }
-        })
-        browser.start()
     }
 
     setPowerState(powerState: PowerState) {

@@ -29,11 +29,10 @@
     "dependencies": {
         "castv2": "^0.1.9",
         "debug": "^2.6.8",
-        "mdns": "^2.3.3"
+        "mdns-js": "^0.5.3"
     },
     "devDependencies": {
         "@types/debug": "0.0.29",
-        "@types/mdns": "0.0.31",
         "@types/node": "^8.0.15",
         "typescript": "^2.4.2"
     }

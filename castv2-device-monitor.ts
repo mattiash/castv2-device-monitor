@@ -2,13 +2,9 @@
 
 import { DeviceMonitor } from './index'
 
-let [, , deviceName, interfaceName, timeout] = process.argv
+let [, , deviceName, timeout] = process.argv
 
-let cm = new DeviceMonitor(
-    deviceName,
-    interfaceName,
-    parseInt(timeout) || undefined,
-)
+let cm = new DeviceMonitor(deviceName, parseInt(timeout) || undefined)
 
 cm.on('powerState', powerState => console.log('powerState', powerState))
 cm.on('playState', playState => console.log('playState', playState))
