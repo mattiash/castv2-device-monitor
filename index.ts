@@ -119,6 +119,7 @@ export class DeviceMonitor extends EventEmitter {
             this.application = application
         } else {
             this.setPowerState('on')
+            this.setIdleTimer()
             if (application !== this.application) {
                 this.application = application
                 this.emit('application', this.application)
