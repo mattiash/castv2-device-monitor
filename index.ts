@@ -114,10 +114,15 @@ export class DeviceMonitor extends EventEmitter {
     }
 
     setApplication(application: string) {
-        this.setPowerState('on')
-        if (application !== this.application) {
+        if (application === 'Backdrop') {
+            this.setPowerState('off')
             this.application = application
-            this.emit('application', this.application)
+        } else {
+            this.setPowerState('on')
+            if (application !== this.application) {
+                this.application = application
+                this.emit('application', this.application)
+            }
         }
     }
 
