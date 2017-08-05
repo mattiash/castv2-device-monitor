@@ -171,6 +171,12 @@ export class DeviceMonitor extends EventEmitter {
             this.clientConnection.volumeDown()
         }
     }
+
+    setVolume(level: number) {
+        if (this.clientConnection) {
+            this.clientConnection.setVolume(level)
+        }
+    }
 }
 
 class ClientConnection {
@@ -310,6 +316,14 @@ class ClientConnection {
         this.receiver.send({
             type: 'SET_VOLUME',
             volume: { level: this.volume - 0.05 },
+            requestId: requestId++,
+        })
+    }
+
+    setVolume(level: number) {
+        this.receiver.send({
+            type: 'SET_VOLUME',
+            volume: { level: level },
             requestId: requestId++,
         })
     }
