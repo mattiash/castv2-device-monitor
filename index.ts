@@ -128,14 +128,16 @@ export class DeviceMonitor extends EventEmitter {
     }
 
     setIdleTimer() {
+        debug('setIdleTimer')
         this.clearIdleTimer()
-        this.idleTimer = setTimeout(
-            () => this.setPowerState('off'),
-            this.idleTimeout,
-        )
+        this.idleTimer = setTimeout(() => {
+            debug('idleTimeout')
+            this.setPowerState('off')
+        }, this.idleTimeout)
     }
 
     clearIdleTimer() {
+        debug('clearIdleTimer')
         if (this.idleTimer) {
             clearTimeout(this.idleTimer)
             this.idleTimer = undefined
