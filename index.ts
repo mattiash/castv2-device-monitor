@@ -24,7 +24,7 @@ export class DeviceMonitor extends EventEmitter {
     }
 
     private clientConnection: ClientConnection | undefined
-    private idleTimer: NodeJS.Timer | undefined
+    private idleTimer: NodeJS.Timer | undefined = undefined
     private clientIp: string
 
     constructor(
@@ -73,11 +73,12 @@ export class DeviceMonitor extends EventEmitter {
     setPowerState(powerState: PowerState) {
         if (powerState !== this.powerState) {
             this.powerState = powerState
-            this.emit('powerState', this.powerState)
-        }
 
-        if (this.powerState === 'on') {
-            this.clearIdleTimer()
+            if (this.powerState === 'on') {
+                this.clearIdleTimer()
+            }
+
+            this.emit('powerState', this.powerState)
         }
     }
 
@@ -90,14 +91,14 @@ export class DeviceMonitor extends EventEmitter {
             playerState === 'BUFFERING'
         ) {
             playState = 'pause'
-            this.setIdleTimer()
-        }
-
-        if (playState === 'play') {
-            this.setPowerState('on')
         }
 
         if (this.playState !== playState) {
+            if (playState === 'play') {
+                this.setPowerState('on')
+            } else {
+                this.setIdleTimer()
+            }
             this.playState = playState
             this.emit('playState', this.playState)
         }
@@ -119,7 +120,9 @@ export class DeviceMonitor extends EventEmitter {
             this.application = application
         } else {
             this.setPowerState('on')
-            this.setIdleTimer()
+            if (this.playState === 'pause') {
+                this.setIdleTimer()
+            }
             if (application !== this.application) {
                 this.application = application
                 this.emit('application', this.application)
@@ -138,7 +141,8 @@ export class DeviceMonitor extends EventEmitter {
 
     clearIdleTimer() {
         debug('clearIdleTimer')
-        if (this.idleTimer) {
+        if (this.idleTimer !== undefined) {
+            debug('idleTimer cleared')
             clearTimeout(this.idleTimer)
             this.idleTimer = undefined
         }
