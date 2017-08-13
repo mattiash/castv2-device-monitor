@@ -402,7 +402,7 @@ class MediaConnection {
             if (status) {
                 this.mediaSessionId = status.mediaSessionId
                 this.monitor.setPlayState(status.playerState)
-                if (status.media) {
+                if (status.media && status.media.metadata) {
                     this.monitor.setMedia({
                         artist: status.media.metadata.artist,
                         title: status.media.metadata.title,
