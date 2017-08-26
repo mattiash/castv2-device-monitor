@@ -96,6 +96,7 @@ export class DeviceMonitor extends EventEmitter {
         if (this.playState !== playState) {
             if (playState === 'play') {
                 this.setPowerState('on')
+                this.clearIdleTimer()
             } else {
                 this.setIdleTimer()
             }
