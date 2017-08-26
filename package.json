@@ -1,6 +1,6 @@
 {
     "name": "castv2-device-monitor",
-    "version": "1.2.3",
+    "version": "1.2.4",
     "description": "Monitor a castv2 (a.k.a Chromecast) device",
     "main": "index.js",
     "types": "index.d.ts",
