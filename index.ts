@@ -12,6 +12,7 @@ export type Media = {
     artist: string
     title: string
 }
+export type Volume = number;
 
 export class DeviceMonitor extends EventEmitter {
     public powerState: PowerState | undefined = undefined
@@ -22,6 +23,7 @@ export class DeviceMonitor extends EventEmitter {
         artist: 'none',
         title: 'none',
     }
+    public currentVolume: Volume;
 
     private clientConnection: ClientConnection | undefined
     private idleTimer: NodeJS.Timer | undefined = undefined
@@ -115,6 +117,11 @@ export class DeviceMonitor extends EventEmitter {
         }
     }
 
+    updateVolume(volume: Volume) {
+        this.currentVolume = volume;
+        this.emit('volume', this.currentVolume)
+    }
+
     setApplication(application: string) {
         if (application === 'Backdrop') {
             this.setPowerState('off')
@@ -195,7 +202,7 @@ class ClientConnection {
     private transportId: string
     private sessionId: string
     private mediaConnection: MediaConnection
-    private volume: number
+    private volume: Volume
 
     constructor(private address: string, private monitor: DeviceMonitor) {
         this.connect()
@@ -265,6 +272,7 @@ class ClientConnection {
                 let transportId = data.status.applications[0].transportId
                 this.volume = data.status.volume.level
                 debug('volume', this.volume)
+                this.monitor.updateVolume(this.volume)
                 if (this.transportId !== transportId) {
                     this.transportId = transportId
                     this.mediaConnection = new MediaConnection(
