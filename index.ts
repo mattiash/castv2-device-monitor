@@ -390,8 +390,8 @@ class MediaConnection {
         this.media.on('close', () => {
           // Sony cast speakers CLOSE when powered down, and don't send updates
           // Update internal state
-          this.monitor.setPlayState('IDLE');
-          this.monitor.setMedia({});
+          this.monitor.setPlayState('IDLE')
+          this.monitor.setMedia({})
         })
     }
 
