@@ -386,6 +386,12 @@ class MediaConnection {
         })
 
         this.media.on('message', (message: any) => this.parseMessage(message))
+
+        this.media.on('close', () => {
+          // This is needed particularly for Chromecast audio & enabled speakers
+          // Update internal state, but leave the other state variables alone
+          this.monitor.setPowerState('off')
+        })
     }
 
     pause() {
