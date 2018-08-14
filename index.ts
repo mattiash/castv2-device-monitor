@@ -11,6 +11,13 @@ export type PlayState = 'play' | 'pause'
 export type Media = {
     artist: string
     title: string
+    albumArtist?: string
+    albumName?: string
+    images?: Array<Image>
+    trackNumber?: number
+}
+export type Image = {
+    url: string
 }
 export type Volume = number;
 
@@ -348,6 +355,8 @@ class MediaConnection {
     private mediaSessionId: string
     private media: any
 
+    static readonly MUSIC_TRACK = 3;
+
     constructor(
         client: any,
         transportId: string,
@@ -421,6 +430,10 @@ class MediaConnection {
                     this.monitor.setMedia({
                         artist: status.media.metadata.artist,
                         title: status.media.metadata.title,
+                        albumArtist: (status.media.metadata.metadataType === MediaConnection.MUSIC_TRACK) ? status.media.metadata.albumArtist : undefined,
+                        albumName: (status.media.metadata.metadataType === MediaConnection.MUSIC_TRACK) ? status.media.metadata.albumName : undefined,
+                        images: (status.media.metadata.metadataType === MediaConnection.MUSIC_TRACK) ? status.media.metadata.images : undefined,
+                        trackNumber: (status.media.metadata.metadataType === MediaConnection.MUSIC_TRACK) ? status.media.metadata.trackNumber : undefined,
                     })
                 }
             }
