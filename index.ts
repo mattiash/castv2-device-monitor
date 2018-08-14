@@ -432,7 +432,7 @@ class MediaConnection {
                         title: status.media.metadata.title,
                         albumArtist: (status.media.metadata.metadataType === MediaConnection.MUSIC_TRACK) ? status.media.metadata.albumArtist : undefined,
                         albumName: (status.media.metadata.metadataType === MediaConnection.MUSIC_TRACK) ? status.media.metadata.albumName : undefined,
-                        images: (status.media.metadata.metadataType === MediaConnection.MUSIC_TRACK) ? status.media.metadata.images : undefined,
+                        images: status.media.metadata.images,
                         trackNumber: (status.media.metadata.metadataType === MediaConnection.MUSIC_TRACK) ? status.media.metadata.trackNumber : undefined,
                     })
                 }
