@@ -4,7 +4,7 @@ Monitor the state of a castv2 (a.k.a. Chromecast) device.
 
 ## Usage
 
-    const DeviceMonitor = require('castv2-device-monitor).DeviceMonitor
+    const DeviceMonitor = require('castv2-device-monitor').DeviceMonitor
 
     // Monitor the chromecast with the friendly name Livingroom
     let dm = new DeviceMonitor('Livingroom')
