@@ -46,6 +46,7 @@ The media event has a single parameter that contains an object with properties
 'artist' and 'title'. These describe the currently playing song on the Chromecast.
 
 ### event 'volume'
+
 The volume event has a single parameter that contains the current volume as
 a number between 0-1, where 0 is muted and 1 is the maximum volume.
 
